@@ -2,31 +2,27 @@ from langchain_core.tools import tool
 from typing import Annotated
 from tradingagents.dataflows.interface import route_to_vendor
 
+
 @tool
-def get_indicators(
-    symbol: Annotated[str, "ticker symbol of the company"],
-    indicator: Annotated[str, "technical indicator to get the analysis and report of"],
-    curr_date: Annotated[str, "The current trading date you are trading on, YYYY-mm-dd"],
-    look_back_days: Annotated[int, "how many days to look back"] = 30,
+def get_futures_indicators(
+    symbol: Annotated[str, "main contract code, e.g. 'rb2410'"],
+    indicator: Annotated[str, "technical indicator type: 'volume', 'position', 'sma', 'ema', 'macd', 'boll'"],
+    start_date: Annotated[str, "Start date in yyyy-mm-dd format"],
+    end_date: Annotated[str, "End date in yyyy-mm-dd format"],
+    look_back_days: Annotated[int, "number of days to look back (used if start_date not provided)"] = 30,
 ) -> str:
     """
-    Retrieve a single technical indicator for a given ticker symbol.
-    Uses the configured technical_indicators vendor.
+    Retrieve technical indicators for a given futures contract.
+    Uses akshare data source.
+    
     Args:
-        symbol (str): Ticker symbol of the company, e.g. AAPL, TSM
-        indicator (str): A single technical indicator name, e.g. 'rsi', 'macd'. Call this tool once per indicator.
-        curr_date (str): The current trading date you are trading on, YYYY-mm-dd
-        look_back_days (int): How many days to look back, default is 30
+        symbol: Main contract code (e.g., 'rb2410')
+        indicator: Technical indicator type: volume, position, sma, ema, macd, boll
+        start_date: Start date in yyyy-mm-dd format
+        end_date: End date in yyyy-mm-dd format
+        look_back_days: Number of days to look back (default 30)
+    
     Returns:
-        str: A formatted dataframe containing the technical indicators for the specified ticker symbol and indicator.
+        str: Formatted dataframe containing technical indicators
     """
-    # LLMs sometimes pass multiple indicators as a comma-separated string;
-    # split and process each individually.
-    indicators = [i.strip().lower() for i in indicator.split(",") if i.strip()]
-    results = []
-    for ind in indicators:
-        try:
-            results.append(route_to_vendor("get_indicators", symbol, ind, curr_date, look_back_days))
-        except ValueError as e:
-            results.append(str(e))
-    return "\n\n".join(results)
+    return route_to_vendor("get_futures_indicators", symbol, indicator, start_date, end_date)

@@ -1,6 +1,9 @@
-from typing import Annotated
+from typing import Annotated, Optional, Literal
 from typing_extensions import TypedDict
 from langgraph.graph import MessagesState
+
+
+PositionDirection = Literal["Long", "Short"]
 
 
 # Researcher team state
@@ -46,6 +49,9 @@ class RiskDebateState(TypedDict):
 class AgentState(MessagesState):
     company_of_interest: Annotated[str, "Company that we are interested in trading"]
     trade_date: Annotated[str, "What date we are trading at"]
+    position_direction: Annotated[
+        Optional[PositionDirection], "Position direction: Long or Short for futures"
+    ]
 
     sender: Annotated[str, "Agent that sent this message"]
 

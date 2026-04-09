@@ -1,14 +1,11 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from tradingagents.agents.utils.agent_utils import (
     build_instrument_context,
-    get_balance_sheet,
-    get_cashflow,
-    get_fundamentals,
-    get_income_statement,
-    get_insider_transactions,
+    get_futures_basis,
+    get_futures_inventory,
+    get_futures_position,
     get_language_instruction,
 )
-from tradingagents.dataflows.config import get_config
 
 
 def create_fundamentals_analyst(llm):
@@ -17,17 +14,23 @@ def create_fundamentals_analyst(llm):
         instrument_context = build_instrument_context(state["company_of_interest"])
 
         tools = [
-            get_fundamentals,
-            get_balance_sheet,
-            get_cashflow,
-            get_income_statement,
+            get_futures_basis,
+            get_futures_inventory,
+            get_futures_position,
         ]
 
         system_message = (
-            "You are a researcher tasked with analyzing fundamental information over the past week about a company. Please write a comprehensive report of the company's fundamental information such as financial documents, company profile, basic company financials, and company financial history to gain a full view of the company's fundamental information to inform traders. Make sure to include as much detail as possible. Provide specific, actionable insights with supporting evidence to help traders make informed decisions."
-            + " Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read."
-            + " Use the available tools: `get_fundamentals` for comprehensive company analysis, `get_balance_sheet`, `get_cashflow`, and `get_income_statement` for specific financial statements."
-            + get_language_instruction(),
+            "You are a futures fundamentals analyst tasked with analyzing fundamental information "
+            "for Chinese futures markets. Please write a comprehensive report covering:\n\n"
+            "1. **Basis Analysis**: Use get_futures_basis to calculate basis (spot price vs futures price). "
+            "Basis tells you the relationship between cash market and futures market.\n\n"
+            "2. **Inventory Data**: Use get_futures_inventory to analyze warehouse receipts and stockpiles. "
+            "High inventory typically indicates weak demand; low inventory suggests strong demand.\n\n"
+            "3. **Position Data**: Use get_futures_position to analyze open interest. "
+            "Open interest indicates market participation and liquidity.\n\n"
+            "Provide specific, actionable insights with supporting evidence to help traders make informed decisions.\n"
+            "Append a Markdown table at the end of the report to organize key points.\n"
+            + get_language_instruction()
         )
 
         prompt = ChatPromptTemplate.from_messages(

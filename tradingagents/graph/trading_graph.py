@@ -22,15 +22,14 @@ from tradingagents.dataflows.config import set_config
 
 # Import the new abstract tool methods from agent_utils
 from tradingagents.agents.utils.agent_utils import (
-    get_stock_data,
-    get_indicators,
-    get_fundamentals,
-    get_balance_sheet,
-    get_cashflow,
-    get_income_statement,
-    get_news,
-    get_insider_transactions,
-    get_global_news
+    get_main_contract,
+    get_futures_ohlc,
+    get_futures_indicators,
+    get_futures_basis,
+    get_futures_inventory,
+    get_futures_position,
+    get_futures_news,
+    get_global_futures_news,
 )
 
 from .conditional_logic import ConditionalLogic
@@ -156,37 +155,31 @@ class TradingAgentsGraph:
         return kwargs
 
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
-        """Create tool nodes for different data sources using abstract methods."""
+        """Create tool nodes for different data sources using akshare."""
         return {
             "market": ToolNode(
                 [
-                    # Core stock data tools
-                    get_stock_data,
-                    # Technical indicators
-                    get_indicators,
+                    get_main_contract,
+                    get_futures_ohlc,
+                    get_futures_indicators,
                 ]
             ),
             "social": ToolNode(
                 [
-                    # News tools for social media analysis
-                    get_news,
+                    get_futures_news,
                 ]
             ),
             "news": ToolNode(
                 [
-                    # News and insider information
-                    get_news,
-                    get_global_news,
-                    get_insider_transactions,
+                    get_futures_news,
+                    get_global_futures_news,
                 ]
             ),
             "fundamentals": ToolNode(
                 [
-                    # Fundamental analysis tools
-                    get_fundamentals,
-                    get_balance_sheet,
-                    get_cashflow,
-                    get_income_statement,
+                    get_futures_basis,
+                    get_futures_inventory,
+                    get_futures_position,
                 ]
             ),
         }

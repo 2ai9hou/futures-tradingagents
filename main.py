@@ -8,23 +8,24 @@ load_dotenv()
 
 # Create a custom config
 config = DEFAULT_CONFIG.copy()
-config["deep_think_llm"] = "gpt-5.4-mini"  # Use a different model
-config["quick_think_llm"] = "gpt-5.4-mini"  # Use a different model
-config["max_debate_rounds"] = 1  # Increase debate rounds
+config["deep_think_llm"] = "gpt-5.4-mini"
+config["quick_think_llm"] = "gpt-5.4-mini"
+config["max_debate_rounds"] = 1
 
-# Configure data vendors (default uses yfinance, no extra API keys needed)
+# Configure data vendors for Chinese Futures Market (akshare)
 config["data_vendors"] = {
-    "core_stock_apis": "yfinance",           # Options: alpha_vantage, yfinance
-    "technical_indicators": "yfinance",      # Options: alpha_vantage, yfinance
-    "fundamental_data": "yfinance",          # Options: alpha_vantage, yfinance
-    "news_data": "yfinance",                 # Options: alpha_vantage, yfinance
+    "core_stock_apis": "akshare",
+    "technical_indicators": "akshare",
+    "fundamental_data": "akshare",
+    "news_data": "akshare",
 }
 
 # Initialize with custom config
 ta = TradingAgentsGraph(debug=True, config=config)
 
-# forward propagate
-_, decision = ta.propagate("NVDA", "2024-05-10")
+# forward propagate with futures symbol
+# Example: 'rb' for rebar futures, 'hc' for hot rolled coil, 'i' for iron ore
+_, decision = ta.propagate("rb", "2024-05-10")
 print(decision)
 
 # Memorize mistakes and reflect

@@ -1,5 +1,6 @@
-import questionary
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Literal
+from dataclasses import dataclass
+import re
 
 from rich.console import Console
 
@@ -8,8 +9,87 @@ from tradingagents.llm_clients.model_catalog import get_model_options
 
 console = Console()
 
-TICKER_INPUT_EXAMPLES = "Examples: SPY, CNC.TO, 7203.T, 0700.HK"
+CHINESE_FUTURES_EXCHANGES = {
+    "SHFE",  # 上海期货交易所
+    "DCE",   # 大连商品交易所
+    "CZCE",  # 郑州商品交易所
+    "CFFEX", # 中国金融期货交易所
+}
 
+CHINESE_FUTURES_SPECIES = {
+    "rb", "hc", "i", "j", "m", "y", "p", "a", "b", "c", "cs",
+    "l", "v", "pp", "eg", "eb", "jd", "lh", "sf", "sm",
+    "IF", "IH", "IC", "IM", "T", "TF", "TS",
+    "au", "ag", "cu", "al", "zn", "pb", "ni", "sn", "ss",
+    "ru", "bu", "sc", "nr",
+}
+
+PositionDirection = Literal["Long", "Short"]
+
+
+@dataclass
+class FuturesTicker:
+    species: str
+    exchange: Optional[str]
+    position: PositionDirection
+    raw_input: str
+
+    def __str__(self) -> str:
+        base = self.species.upper()
+        if self.exchange:
+            base = f"{self.exchange}:{base}"
+        if self.position:
+            base = f"{base}|{self.position}"
+        return base
+
+    @property
+    def display_name(self) -> str:
+        names = {
+            "rb": "螺纹钢",
+            "hc": "热轧卷板",
+            "i": "铁矿石",
+            "j": "焦炭",
+            "m": "豆粕",
+            "y": "豆油",
+            "p": "棕榈油",
+            "a": "大豆",
+            "b": "铁矿石",
+            "c": "玉米",
+            "cs": "玉米淀粉",
+            "l": "聚乙烯",
+            "v": "聚氯乙烯",
+            "pp": "聚丙烯",
+            "eg": "乙二醇",
+            "eb": "苯乙烯",
+            "jd": "鸡蛋",
+            "lh": "生猪",
+            "sf": "硅铁",
+            "sm": "锰硅",
+            "IF": "沪深300股指",
+            "IH": "上证50股指",
+            "IC": "中证500股指",
+            "IM": "中证1000股指",
+            "T": "10年期国债",
+            "TF": "5年期国债",
+            "TS": "2年期国债",
+            "au": "黄金",
+            "ag": "白银",
+            "cu": "铜",
+            "al": "铝",
+            "zn": "锌",
+            "pb": "铅",
+            "ni": "镍",
+            "sn": "锡",
+            "ss": "不锈钢",
+            "ru": "天然橡胶",
+            "bu": "沥青",
+            "sc": "原油",
+            "nr": "20号胶",
+        }
+        return names.get(self.species.lower(), self.species.upper())
+
+
+TICKER_INPUT_EXAMPLES = "期货示例: rb (螺纹钢), IF (沪深300), SHFE:rb, m|Long"
 ANALYST_ORDER = [
     ("Market Analyst", AnalystType.MARKET),
     ("Social Media Analyst", AnalystType.SOCIAL),
@@ -18,7 +98,7 @@ ANALYST_ORDER = [
 ]
 
 
-def get_ticker() -> str:
+def get_ticker() -> FuturesTicker:
     """Prompt the user to enter a ticker symbol."""
     ticker = questionary.text(
         f"Enter the exact ticker symbol to analyze ({TICKER_INPUT_EXAMPLES}):",
@@ -38,9 +118,43 @@ def get_ticker() -> str:
     return normalize_ticker_symbol(ticker)
 
 
-def normalize_ticker_symbol(ticker: str) -> str:
-    """Normalize ticker input while preserving exchange suffixes."""
-    return ticker.strip().upper()
+def normalize_ticker_symbol(ticker: str) -> FuturesTicker:
+    """Normalize ticker input for Chinese futures markets.
+
+    Supports formats:
+    - Species only: 'rb', 'IF', 'm'
+    - With exchange: 'SHFE:rb', 'DCE:m'
+    - With position: 'rb|Long', 'IF|Short'
+    - Full format: 'SHFE:rb|Short', 'DCE:m|Long'
+    - Legacy stock format preserved: 'AAPL', '7203.T'
+    """
+    original = ticker.strip()
+    ticker_upper = original.upper()
+
+    position: PositionDirection = "Long"
+    exchange: Optional[str] = None
+    species: str = ""
+
+    if match := re.match(r"^(SHFE|DCE|CZCE|CFFEX):([A-Z0-9]+)(?:\|(LONG|SHORT))?$", ticker_upper):
+        exchange, species, pos = match.groups()
+        if pos:
+            position = "Long" if pos == "LONG" else "Short"
+    elif match := re.match(r"^([A-Z0-9]+)\|(LONG|SHORT)$", ticker_upper):
+        species, pos = match.groups()
+        position = "Long" if pos == "LONG" else "Short"
+    elif ticker_upper in CHINESE_FUTURES_EXCHANGES:
+        exchange = ticker_upper
+    elif ticker_upper in CHINESE_FUTURES_SPECIES:
+        species = ticker_upper
+    else:
+        species = ticker_upper
+
+    return FuturesTicker(
+        species=species,
+        exchange=exchange,
+        position=position,
+        raw_input=original,
+    )
 
 
 def get_analysis_date() -> str:
