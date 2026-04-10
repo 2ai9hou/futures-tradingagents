@@ -1,5 +1,11 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from tradingagents.agents.utils.agent_utils import build_instrument_context, get_language_instruction, get_futures_news
+from tradingagents.agents.utils.agent_utils import (
+    build_instrument_context,
+    get_language_instruction,
+    get_market_news,
+    get_futures_news,
+    get_futures_research_reports,
+)
 
 
 def create_social_media_analyst(llm):
@@ -10,7 +16,9 @@ def create_social_media_analyst(llm):
         instrument_context = build_instrument_context(company, position=position)
 
         tools = [
+            get_market_news,
             get_futures_news,
+            get_futures_research_reports,
         ]
 
         system_message = (
@@ -30,7 +38,7 @@ def create_social_media_analyst(llm):
 2. **机构观点分析**
    - 主流机构评级变化：多空转向信号
    - 期货公司研报倾向：综合判断市场共识
-   - 持仓报告解读：CFTC持仓、国内期货公司持仓
+   - 持仓报告解读：多空主力持仓动向
    - 明星席位动向：主力席位增减仓
 
 3. **产业链情绪**
@@ -40,15 +48,20 @@ def create_social_media_analyst(llm):
    - 替代品动态：相关品种联动情绪
 
 4. **行为金融视角**
-   - 恐慌指数：VIX类似指标
+   - 恐慌指数：市场波动率指数
    - 期现价差异常：情绪过热/过冷信号
    - 合约单边持仓集中度：逼仓风险
    - 散户 vs 机构情绪差：逆向指标参考
 
+5. **研报情绪分析**
+   - 评级分布：买入/中性/卖出比例
+   - 目标价空间：上涨/下跌空间
+   - 分析师信心指数：预期分歧度
+
 【分析步骤】
-1. 使用 get_futures_news 获取市场新闻和评论
-2. 分析新闻背后的情绪倾向
-3. 结合持仓数据判断市场参与者的实际行为
+1. 使用 get_market_news 获取7x24快讯，捕捉市场情绪变化
+2. 使用 get_futures_news 获取品种相关新闻和评论
+3. 使用 get_futures_research_reports 获取机构评级和目标价
 
 【输出要求】
 1. 评估当前市场整体情绪（极度看多/偏多/中性/偏空/极度看空）

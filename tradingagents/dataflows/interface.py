@@ -8,6 +8,10 @@ from .akshare_futures import (
     get_futures_inventory,
     get_futures_position,
     get_futures_historical_indicators,
+    get_market_news,
+    get_sina_futures_news,
+    get_futures_research_reports,
+    get_macro_news,
 )
 
 from .config import get_config
@@ -35,9 +39,12 @@ TOOLS_CATEGORIES = {
         ]
     },
     "news_data": {
-        "description": "Futures market news (placeholder)",
+        "description": "Futures market news and research reports",
         "tools": [
-            "get_futures_news",
+            "get_market_news",
+            "get_sina_futures_news",
+            "get_futures_research_reports",
+            "get_macro_news",
         ]
     }
 }
@@ -66,8 +73,17 @@ VENDOR_METHODS = {
     "get_futures_position": {
         "akshare": get_futures_position,
     },
-    "get_futures_news": {
-        "akshare": lambda: "News functionality not yet implemented for akshare futures.",
+    "get_market_news": {
+        "akshare": get_market_news,
+    },
+    "get_sina_futures_news": {
+        "akshare": get_sina_futures_news,
+    },
+    "get_futures_research_reports": {
+        "akshare": get_futures_research_reports,
+    },
+    "get_macro_news": {
+        "akshare": get_macro_news,
     },
 }
 

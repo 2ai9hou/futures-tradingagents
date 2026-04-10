@@ -437,3 +437,232 @@ def get_futures_historical_indicators(
         
     except Exception as e:
         return f"Error calculating indicator {indicator} for {symbol}: {str(e)}"
+
+
+def get_market_news(look_back_hours: int = 24) -> str:
+    """
+    获取市场7x24小时实时快讯。
+    数据来源：东方财富华尔街见闻快讯。
+
+    Args:
+        look_back_hours: 回溯小时数，默认24小时
+
+    Returns:
+        格式化的时间线式新闻文本
+    """
+    try:
+        df = ak.news_em_news()
+        
+        if df is None or df.empty:
+            return "暂无市场快讯数据"
+        
+        df = df.copy()
+        
+        news_items = []
+        for idx, row in df.head(50).iterrows():
+            timestamp = row.get('发布时间', row.get('时间', 'N/A'))
+            source = row.get('来源', row.get('source', '华尔街见闻'))
+            title = row.get('标题', row.get('title', ''))
+            content = row.get('内容', row.get('content', ''))
+            
+            if pd.isna(title) or not title:
+                continue
+            
+            news_items.append(f"[{timestamp}] {source}\n标题：{title}")
+            if pd.notna(content) and content:
+                news_items.append(f"内容：{content[:200]}...")
+            news_items.append("")
+        
+        if not news_items:
+            return "暂无市场快讯数据"
+        
+        result = "# 市场7x24小时实时快讯\n"
+        result += f"# 数据来源：华尔街见闻\n"
+        result += f"# 获取时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        result += f"# 共获取 {len(news_items)//2} 条快讯\n\n"
+        result += "---\n\n".join(news_items)
+        
+        return result
+        
+    except Exception as e:
+        return f"获取市场快讯失败：{str(e)}"
+
+
+def get_sina_futures_news(symbol: str) -> str:
+    """
+    获取新浪财经期货品种相关快讯。
+
+    Args:
+        symbol: 期货品种代码 (如 'rb', 'hc', 'IF')
+
+    Returns:
+        格式化品种相关新闻文本
+    """
+    try:
+        try:
+            df_sina = ak.get_article_news_xq(symbol=symbol.upper())
+            if df_sina is not None and not df_sina.empty:
+                news_data = df_sina
+            else:
+                news_data = None
+        except Exception:
+            news_data = None
+        
+        if news_data is None or news_data.empty:
+            general_news = get_market_news(look_back_hours=24)
+            return f"# {symbol.upper()} 相关快讯\n\n未找到品种专属快讯，以下是市场概览：\n\n{general_news}"
+        
+        news_data = news_data.copy()
+        
+        news_items = []
+        for idx, row in news_data.head(20).iterrows():
+            timestamp = row.get('发布时间', row.get('时间', 'N/A'))
+            title = row.get('标题', row.get('title', ''))
+            content = row.get('内容', row.get('content', ''))
+            
+            if pd.isna(title) or not title:
+                continue
+            
+            news_items.append(f"[{timestamp}]\n标题：{title}")
+            if pd.notna(content) and content:
+                news_items.append(f"摘要：{content[:300]}")
+            news_items.append("")
+        
+        if not news_items:
+            return f"# {symbol.upper()} 相关快讯\n\n暂无相关新闻数据"
+        
+        result = f"# {symbol.upper()} 相关快讯\n"
+        result += f"# 数据来源：新浪财经\n"
+        result += f"# 获取时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        result += f"# 共获取 {len(news_items)//2} 条\n\n"
+        result += "---\n\n".join(news_items)
+        
+        return result
+        
+    except Exception as e:
+        return f"获取 {symbol} 新闻失败：{str(e)}"
+
+
+def get_futures_research_reports(symbol: str, limit: int = 10) -> str:
+    """
+    获取东方财富期货品种最新研报摘要。
+
+    Args:
+        symbol: 期货品种代码 (如 'rb', 'IF')
+        limit: 返回研报数量，默认10篇
+
+    Returns:
+        格式化研报摘要文本
+    """
+    try:
+        try:
+            df = ak.report_em_research_report(symbol=symbol.upper(), symbol_name="")
+            if df is None or df.empty:
+                df = ak.report_em_research_report(symbol="", symbol_name=symbol.upper())
+                if df is None or df.empty:
+                    return f"# {symbol.upper()} 研报摘要\n\n暂无{symbol.upper()}相关研报数据"
+        except Exception:
+            df = None
+        
+        if df is None or df.empty:
+            return f"# {symbol.upper()} 研报摘要\n\n暂无{symbol.upper()}相关研报数据"
+        
+        df = df.head(limit)
+        df = df.copy()
+        
+        report_items = []
+        for idx, row in df.iterrows():
+            title = row.get('研报标题', row.get('标题', 'N/A'))
+            author = row.get('分析师', row.get('作者', 'N/A'))
+            org = row.get('机构', row.get('券商', 'N/A'))
+            date = row.get('公布日期', row.get('日期', row.get('时间', 'N/A')))
+            rating = row.get('评级', row.get('投资评级', 'N/A'))
+            summary = row.get('概要', row.get('摘要', row.get('内容', '')))
+            
+            if pd.isna(title) or not title:
+                continue
+            
+            report_items.append(f"【研报标题】{title}")
+            report_items.append(f"【分析师】{author} @ {org}")
+            report_items.append(f"【评级】{rating}")
+            report_items.append(f"【日期】{date}")
+            if pd.notna(summary) and summary:
+                report_items.append(f"【核心观点】{summary[:500]}")
+            report_items.append("")
+        
+        if not report_items:
+            return f"# {symbol.upper()} 研报摘要\n\n暂无{symbol.upper()}相关研报数据"
+        
+        result = f"# {symbol.upper()} 研报摘要\n"
+        result += f"# 数据来源：东方财富\n"
+        result += f"# 获取时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        result += f"# 共获取 {len(report_items)//5} 篇研报\n\n"
+        result += "=" * 60 + "\n\n"
+        result += "\n\n".join(report_items)
+        
+        result += "\n\n" + "=" * 60 + "\n"
+        result += "【研报评级说明】\n"
+        result += "- 强烈推荐：预期涨幅>30%\n"
+        result += "- 买入/推荐：预期涨幅>15%\n"
+        result += "- 增持/中性：预期涨幅0-15%\n"
+        result += "- 减持/卖出：预期涨幅<0%\n"
+        
+        return result
+        
+    except Exception as e:
+        return f"获取 {symbol} 研报失败：{str(e)}"
+
+
+def get_macro_news(look_back_days: int = 7) -> str:
+    """
+    获取宏观新闻和经济数据预告。
+    
+    Args:
+        look_back_days: 回溯天数
+
+    Returns:
+        格式化宏观新闻文本
+    """
+    try:
+        try:
+            df = ak.macro_china_news()
+            if df is None or df.empty:
+                news_df = None
+            else:
+                news_df = df
+        except Exception:
+            news_df = None
+        
+        if news_df is None or news_df.empty:
+            return "# 宏观新闻摘要\n\n暂无宏观新闻数据，请关注华尔街见闻快讯"
+        
+        news_df = news_df.head(30)
+        news_df = news_df.copy()
+        
+        news_items = []
+        for idx, row in news_df.iterrows():
+            title = row.get('标题', 'N/A')
+            date = row.get('发布时间', row.get('时间', 'N/A'))
+            content = row.get('内容', row.get('内容', ''))[:200]
+            
+            if pd.isna(title) or not title:
+                continue
+            
+            news_items.append(f"[{date}] {title}")
+            if pd.notna(content):
+                news_items.append(f"{content}...")
+            news_items.append("")
+        
+        if not news_items:
+            return "# 宏观新闻摘要\n\n暂无宏观新闻数据"
+        
+        result = "# 宏观新闻摘要\n"
+        result += f"# 数据来源：东方财富\n"
+        result += f"# 获取时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        result += f"# 共获取 {len(news_items)//2} 条\n\n"
+        result += "---\n\n".join(news_items)
+        
+        return result
+        
+    except Exception as e:
+        return f"获取宏观新闻失败：{str(e)}"

@@ -2,8 +2,10 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from tradingagents.agents.utils.agent_utils import (
     build_instrument_context,
     get_language_instruction,
+    get_market_news,
     get_futures_news,
-    get_global_futures_news,
+    get_futures_research_reports,
+    get_macro_news,
 )
 
 
@@ -15,8 +17,10 @@ def create_news_analyst(llm):
         instrument_context = build_instrument_context(company, position=position)
 
         tools = [
+            get_market_news,
             get_futures_news,
-            get_global_futures_news,
+            get_futures_research_reports,
+            get_macro_news,
         ]
 
         system_message = (
@@ -52,10 +56,16 @@ def create_news_analyst(llm):
    - 贸易政策：进出口政策变化
    - 谣言与传闻：市场情绪放大器
 
+5. **研报评级分析**
+   - 主流机构评级变化：多空转向信号
+   - 研报核心观点：寻找超预期信息
+   - 评级分布：市场共识程度
+
 【分析步骤】
-1. 使用 get_futures_news 获取品种相关行业新闻
-2. 使用 get_global_futures_news 获取宏观和市场情绪新闻
-3. 评估各类消息对供需和价格的可能影响
+1. 使用 get_market_news 获取7x24快讯了解市场最新动态
+2. 使用 get_futures_news 获取品种相关新浪快讯
+3. 使用 get_futures_research_reports 获取机构研报摘要
+4. 使用 get_macro_news 获取宏观政策新闻
 
 【输出要求】
 1. 梳理近期重大宏观政策变化

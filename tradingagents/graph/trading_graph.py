@@ -20,7 +20,6 @@ from tradingagents.agents.utils.agent_states import (
 )
 from tradingagents.dataflows.config import set_config
 
-# Import the new abstract tool methods from agent_utils
 from tradingagents.agents.utils.agent_utils import (
     get_main_contract,
     get_futures_ohlc,
@@ -28,8 +27,10 @@ from tradingagents.agents.utils.agent_utils import (
     get_futures_basis,
     get_futures_inventory,
     get_futures_position,
+    get_market_news,
     get_futures_news,
-    get_global_futures_news,
+    get_futures_research_reports,
+    get_macro_news,
 )
 
 from .conditional_logic import ConditionalLogic
@@ -166,13 +167,17 @@ class TradingAgentsGraph:
             ),
             "social": ToolNode(
                 [
+                    get_market_news,
                     get_futures_news,
+                    get_futures_research_reports,
                 ]
             ),
             "news": ToolNode(
                 [
+                    get_market_news,
                     get_futures_news,
-                    get_global_futures_news,
+                    get_futures_research_reports,
+                    get_macro_news,
                 ]
             ),
             "fundamentals": ToolNode(

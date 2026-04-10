@@ -3,8 +3,10 @@ from typing import Optional, Literal
 
 from tradingagents.dataflows.interface import route_to_vendor
 from tradingagents.agents.utils.news_data_tools import (
+    get_market_news,
     get_futures_news,
-    get_global_futures_news,
+    get_futures_research_reports,
+    get_macro_news,
 )
 from tradingagents.agents.utils.core_futures_tools import (
     get_main_contract,
