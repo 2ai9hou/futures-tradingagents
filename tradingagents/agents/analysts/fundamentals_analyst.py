@@ -11,7 +11,9 @@ from tradingagents.agents.utils.agent_utils import (
 def create_fundamentals_analyst(llm):
     def fundamentals_analyst_node(state):
         current_date = state["trade_date"]
-        instrument_context = build_instrument_context(state["company_of_interest"])
+        company = state["company_of_interest"]
+        position = state.get("position_direction", "Long")
+        instrument_context = build_instrument_context(company, position=position)
 
         tools = [
             get_futures_basis,

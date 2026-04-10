@@ -19,7 +19,7 @@ CHINESE_FUTURES_EXCHANGES = {
 CHINESE_FUTURES_SPECIES = {
     "rb", "hc", "i", "j", "m", "y", "p", "a", "b", "c", "cs",
     "l", "v", "pp", "eg", "eb", "jd", "lh", "sf", "sm",
-    "IF", "IH", "IC", "IM", "T", "TF", "TS",
+    "if", "ih", "ic", "im", "t", "tf", "ts",
     "au", "ag", "cu", "al", "zn", "pb", "ni", "sn", "ss",
     "ru", "bu", "sc", "nr",
 }
@@ -65,13 +65,13 @@ class FuturesTicker:
             "lh": "生猪",
             "sf": "硅铁",
             "sm": "锰硅",
-            "IF": "沪深300股指",
-            "IH": "上证50股指",
-            "IC": "中证500股指",
-            "IM": "中证1000股指",
-            "T": "10年期国债",
-            "TF": "5年期国债",
-            "TS": "2年期国债",
+            "if": "沪深300股指",
+            "ih": "上证50股指",
+            "ic": "中证500股指",
+            "im": "中证1000股指",
+            "t": "10年期国债",
+            "tf": "5年期国债",
+            "ts": "2年期国债",
             "au": "黄金",
             "ag": "白银",
             "cu": "铜",
@@ -86,7 +86,8 @@ class FuturesTicker:
             "sc": "原油",
             "nr": "20号胶",
         }
-        return names.get(self.species.lower(), self.species.upper())
+        key = self.species.lower()
+        return names.get(key, self.species.upper())
 
 
 TICKER_INPUT_EXAMPLES = "期货示例: rb (螺纹钢), IF (沪深300), SHFE:rb, m|Long"

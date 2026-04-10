@@ -174,6 +174,8 @@ def build_instrument_context(
     species_upper = species.upper()
     exchange_upper = exchange.upper() if exchange else None
     cn_name = CHINESE_FUTURES_SPECIES_CN.get(species_upper, species_upper)
+    if cn_name == species_upper:
+        cn_name = CHINESE_FUTURES_SPECIES_CN.get(species_upper.lower(), species_upper)
 
     if exchange_upper:
         ticker_display = f"{exchange_upper}:{species_upper}"

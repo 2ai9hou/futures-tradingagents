@@ -10,7 +10,9 @@ from tradingagents.agents.utils.agent_utils import (
 def create_news_analyst(llm):
     def news_analyst_node(state):
         current_date = state["trade_date"]
-        instrument_context = build_instrument_context(state["company_of_interest"])
+        company = state["company_of_interest"]
+        position = state.get("position_direction", "Long")
+        instrument_context = build_instrument_context(company, position=position)
 
         tools = [
             get_futures_news,

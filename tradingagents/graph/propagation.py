@@ -1,6 +1,6 @@
 # TradingAgents/graph/propagation.py
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Literal
 from tradingagents.agents.utils.agent_states import (
     AgentState,
     InvestDebateState,
@@ -16,13 +16,20 @@ class Propagator:
         self.max_recur_limit = max_recur_limit
 
     def create_initial_state(
-        self, company_name: str, trade_date: str
+        self, company_name: str, trade_date: str, position_direction: Literal["Long", "Short"] = "Long"
     ) -> Dict[str, Any]:
-        """Create the initial state for the agent graph."""
+        """Create the initial state for the agent graph.
+
+        Args:
+            company_name: Futures symbol (e.g., 'rb', 'SHFE:rb', 'IF')
+            trade_date: Trading date in yyyy-mm-dd format
+            position_direction: Position direction - 'Long' or 'Short'
+        """
         return {
             "messages": [("human", company_name)],
             "company_of_interest": company_name,
             "trade_date": str(trade_date),
+            "position_direction": position_direction,
             "investment_debate_state": InvestDebateState(
                 {
                     "bull_history": "",

@@ -153,5 +153,113 @@ class TestBuildInstrumentContextFromTicker(unittest.TestCase):
         self.assertIn("Short", context)
 
 
+class TestPositionDirectionSupport(unittest.TestCase):
+    """Test that position direction (Long/Short) is properly supported throughout the system."""
+
+    def test_all_exchanges_with_long_position(self):
+        """Test all four Chinese futures exchanges with Long position."""
+        exchanges = ["SHFE", "DCE", "CZCE", "CFFEX"]
+        for exchange in exchanges:
+            ticker_str = f"{exchange}:rb|Long"
+            ticker = normalize_ticker_symbol(ticker_str)
+            self.assertEqual(ticker.exchange, exchange)
+            self.assertEqual(ticker.position, "Long")
+            self.assertEqual(ticker.species, "RB")
+
+    def test_all_exchanges_with_short_position(self):
+        """Test all four Chinese futures exchanges with Short position."""
+        exchanges = ["SHFE", "DCE", "CZCE", "CFFEX"]
+        for exchange in exchanges:
+            ticker_str = f"{exchange}:rb|Short"
+            ticker = normalize_ticker_symbol(ticker_str)
+            self.assertEqual(ticker.exchange, exchange)
+            self.assertEqual(ticker.position, "Short")
+            self.assertEqual(ticker.species, "RB")
+
+    def test_build_instrument_context_with_long_position(self):
+        """Test build_instrument_context correctly describes Long position."""
+        context = build_instrument_context("rb", exchange="SHFE", position="Long")
+        self.assertIn("LONG", context)
+        self.assertIn("price to rise", context)
+        self.assertNotIn("price to fall", context)
+
+    def test_build_instrument_context_with_short_position(self):
+        """Test build_instrument_context correctly describes Short position."""
+        context = build_instrument_context("IF", position="Short")
+        self.assertIn("SHORT", context)
+        self.assertIn("price to fall", context)
+        self.assertNotIn("price to rise", context)
+
+    def test_futures_ticker_str_long(self):
+        """Test FuturesTicker string representation for Long position."""
+        ticker = FuturesTicker(species="rb", exchange="DCE", position="Long", raw_input="DCE:rb|Long")
+        self.assertEqual(str(ticker), "DCE:RB|Long")
+
+    def test_futures_ticker_str_short(self):
+        """Test FuturesTicker string representation for Short position."""
+        ticker = FuturesTicker(species="IF", exchange="CFFEX", position="Short", raw_input="CFFEX:IF|Short")
+        self.assertEqual(str(ticker), "CFFEX:IF|Short")
+
+
+class TestPropagatorPositionDirection(unittest.TestCase):
+    """Test that position_direction is properly initialized in propagator."""
+
+    def test_create_initial_state_with_long(self):
+        from tradingagents.graph.propagation import Propagator
+        propagator = Propagator()
+        state = propagator.create_initial_state("rb", "2024-05-10", "Long")
+        self.assertEqual(state["position_direction"], "Long")
+        self.assertEqual(state["company_of_interest"], "rb")
+
+    def test_create_initial_state_with_short(self):
+        from tradingagents.graph.propagation import Propagator
+        propagator = Propagator()
+        state = propagator.create_initial_state("IF|Short", "2024-05-10", "Short")
+        self.assertEqual(state["position_direction"], "Short")
+        self.assertEqual(state["company_of_interest"], "IF|Short")
+
+    def test_create_initial_state_default_long(self):
+        from tradingagents.graph.propagation import Propagator
+        propagator = Propagator()
+        state = propagator.create_initial_state("rb", "2024-05-10")
+        self.assertEqual(state["position_direction"], "Long")
+
+
+class TestChineseFuturesSpecies(unittest.TestCase):
+    """Test all major Chinese futures species are properly recognized."""
+
+    def test_metals(self):
+        """Test precious and base metals."""
+        metals = ["au", "ag", "cu", "al", "zn", "pb", "ni", "sn", "ss"]
+        for metal in metals:
+            ticker = normalize_ticker_symbol(metal)
+            self.assertEqual(ticker.species, metal.upper())
+            self.assertEqual(ticker.position, "Long")
+
+    def test_black_belts(self):
+        """Test black commodity futures (steel, iron, coking coal)."""
+        black_belts = ["rb", "hc", "i", "j", "jm"]
+        for species in black_belts:
+            ticker = normalize_ticker_symbol(species)
+            self.assertEqual(ticker.species, species.upper())
+
+    def test_agricultural(self):
+        """Test agricultural futures."""
+        agricultural = ["m", "y", "p", "a", "b", "c", "cs"]
+        for species in agricultural:
+            ticker = normalize_ticker_symbol(species)
+            self.assertEqual(ticker.species, species.upper())
+
+    def test_financial_futures(self):
+        """Test financial futures (index futures)."""
+        financial = ["IF", "IH", "IC", "IM"]
+        for species in financial:
+            ticker = normalize_ticker_symbol(species)
+            self.assertEqual(ticker.species, species.upper())
+            # Display name should work for all financial futures
+            ticker_obj = FuturesTicker(species=species, exchange=None, position="Long", raw_input=species)
+            self.assertIsNotNone(ticker_obj.display_name)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import json
 from datetime import date
-from typing import Dict, Any, Tuple, List, Optional
+from typing import Dict, Any, Tuple, List, Optional, Literal
 
 from langgraph.prebuilt import ToolNode
 
@@ -184,14 +184,20 @@ class TradingAgentsGraph:
             ),
         }
 
-    def propagate(self, company_name, trade_date):
-        """Run the trading agents graph for a company on a specific date."""
+    def propagate(self, company_name, trade_date, position_direction: Literal["Long", "Short"] = "Long"):
+        """Run the trading agents graph for a company on a specific date.
+
+        Args:
+            company_name: Futures symbol (e.g., 'rb', 'SHFE:rb', 'IF')
+            trade_date: Trading date in yyyy-mm-dd format
+            position_direction: Position direction - 'Long' or 'Short' (default: 'Long')
+        """
 
         self.ticker = company_name
 
         # Initialize state
         init_agent_state = self.propagator.create_initial_state(
-            company_name, trade_date
+            company_name, trade_date, position_direction
         )
         args = self.propagator.get_graph_args()
 
