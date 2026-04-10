@@ -1,10 +1,12 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from tradingagents.agents.utils.agent_utils import (
     build_instrument_context,
+    get_language_instruction,
+)
+from tradingagents.agents.utils.fundamental_data_tools import (
     get_futures_basis,
     get_futures_inventory,
     get_futures_position,
-    get_language_instruction,
 )
 
 

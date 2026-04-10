@@ -27,6 +27,8 @@ def get_main_contract_code(
     """
     Get the main contract code for a given futures symbol.
     
+    Uses the V0 (主力连续) contract which automatically tracks the main contract.
+    
     Args:
         symbol: Futures symbol code (e.g., 'rb' for rebar, 'hc' for hot rolled coil, 'i' for iron ore)
         exchange: Exchange code (optional, will auto-detect if not provided)
@@ -34,15 +36,17 @@ def get_main_contract_code(
     Returns:
         Main contract code string (e.g., 'rb0', 'rb2410', 'hc0')
     """
+    # V0 = 主连合约代码后缀
     try:
-        df = ak.get_futures_main_sina(symbol=symbol)
-        if df is None or df.empty:
-            return f"{symbol}0"
-        
-        main_contract = df.iloc[0, 0]
-        return main_contract
-    except Exception as e:
-        return f"{symbol}0"
+        # 使用 V0 主连合约
+        v0_symbol = f"{symbol.upper()}0"
+        df = ak.futures_main_sina(symbol=v0_symbol)
+        if df is not None and not df.empty:
+            return v0_symbol
+    except Exception:
+        pass
+    
+    return f"{symbol}0"
 
 
 def get_futures_daily_bars(
@@ -62,25 +66,33 @@ def get_futures_daily_bars(
         Formatted string containing daily bar data with headers
     """
     try:
-        start_str = _format_date_for_akshare(start_date)
-        end_str = _format_date_for_akshare(end_date)
-        
-        df = ak.get_futures_daily_sn(symbol=symbol, start_date=start_str, end_date=end_str)
+        df = ak.futures_zh_daily_sina(symbol=symbol)
         
         if df is None or df.empty:
-            return f"No data found for {symbol} between {start_date} and {end_date}"
+            return f"No data found for {symbol}"
         
         df = df.copy()
         
-        if '日期' in df.columns:
-            df['日期'] = pd.to_datetime(df['日期']).dt.strftime('%Y-%m-%d')
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
         
-        if '收盘' in df.columns and '收盘价' not in df.columns:
-            df.rename(columns={'收盘': '收盘价'}, inplace=True)
+        # Rename columns to Chinese
+        col_mapping = {
+            'date': '日期',
+            'open': '开盘价',
+            'high': '最高价',
+            'low': '最低价',
+            'close': '收盘价',
+            'volume': '成交量',
+            'hold': '持仓量'
+        }
+        df = df.rename(columns=col_mapping)
         
-        required_cols = ['日期', '开盘价', '最高价', '最低价', '收盘价', '成交量', '持仓量']
-        available_cols = [col for col in required_cols if col in df.columns]
-        df = df[available_cols]
+        # Filter by date range
+        df = df[(df['日期'] >= start_date) & (df['日期'] <= end_date)]
+        
+        if df.empty:
+            return f"No data found for {symbol} between {start_date} and {end_date}"
         
         csv_string = df.to_csv(index=False)
         
@@ -194,57 +206,29 @@ def get_futures_inventory(
         Formatted string containing inventory data
     """
     try:
-        if date is None:
-            date_str = datetime.now().strftime('%Y%m%d')
-        else:
-            date_str = _format_date_for_akshare(date)
+        try:
+            df = ak.futures_inventory_em(symbol=symbol.lower())
+            
+            if df is None or df.empty:
+                return f"No inventory data found for {symbol}"
+            
+            df = df.copy()
+            
+            if '日期' in df.columns:
+                df['日期'] = pd.to_datetime(df['日期']).dt.strftime('%Y-%m-%d')
+            
+            csv_string = df.to_csv(index=False)
+            
+            header = f"# Inventory Data for {symbol.upper()}\n"
+            header += f"# Date: {date}\n"
+            header += f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            
+            return header + csv_string
+            
+        except Exception:
+            pass
         
-        inventory_funcs = {
-            'rb': ak.get_futures_inventory_sina,  # Rebar inventory
-            'hc': ak.get_futures_inventory_sina,   # Hot rolled coil
-            'i': ak.get_futures_inventory_sina,    # Iron ore
-        }
-        
-        if symbol.lower() in inventory_funcs:
-            try:
-                df = inventory_funcs[symbol.lower()](symbol=symbol.upper())
-                
-                if df is None or df.empty:
-                    return f"No inventory data found for {symbol}"
-                
-                df = df.copy()
-                
-                if '日期' in df.columns:
-                    df['日期'] = pd.to_datetime(df['日期']).dt.strftime('%Y-%m-%d')
-                
-                csv_string = df.to_csv(index=False)
-                
-                header = f"# Inventory Data for {symbol.upper()}\n"
-                header += f"# Date: {date}\n"
-                header += f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                
-                return header + csv_string
-                
-            except Exception:
-                pass
-        
-        futures_inventory_sina = ak.get_futures_inventory_sina(symbol=symbol.upper())
-        
-        if futures_inventory_sina is None or futures_inventory_sina.empty:
-            return f"No specific inventory data available for {symbol}. Please check exchange websites."
-        
-        futures_inventory_sina = futures_inventory_sina.copy()
-        
-        if '日期' in futures_inventory_sina.columns:
-            futures_inventory_sina['日期'] = pd.to_datetime(futures_inventory_sina['日期']).dt.strftime('%Y-%m-%d')
-        
-        csv_string = futures_inventory_sina.to_csv(index=False)
-        
-        header = f"# Futures Inventory Data for {symbol.upper()}\n"
-        header += f"# Date: {date}\n"
-        header += f"# Data retrieved on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        
-        return header + csv_string
+        return f"No specific inventory data available for {symbol}. Please check exchange websites."
         
     except Exception as e:
         return f"Error fetching inventory for {symbol}: {str(e)}"
@@ -270,13 +254,30 @@ def get_futures_position(
         
         main_contract = get_main_contract_code(symbol)
         
-        start_str = _format_date_for_akshare(date)
-        end_str = start_str
-        
-        df = ak.get_futures_daily_sn(symbol=main_contract, start_date=start_str, end_date=end_str)
+        # Get recent data using futures_zh_daily_sina
+        df = ak.futures_zh_daily_sina(symbol=main_contract)
         
         if df is None or df.empty:
             return f"No position data found for {symbol} on {date}"
+        
+        # Rename columns
+        col_mapping = {
+            'date': '日期',
+            'open': '开盘价',
+            'high': '最高价',
+            'low': '最低价',
+            'close': '收盘价',
+            'volume': '成交量',
+            'hold': '持仓量'
+        }
+        df = df.rename(columns=col_mapping)
+        
+        # Filter to the requested date or most recent
+        df = df[df['日期'] <= date]
+        if df.empty:
+            return f"No position data found for {symbol} on {date}"
+        
+        latest = df.iloc[-1]
         
         result = f"""# Position Data for {symbol} on {date}
 
@@ -286,9 +287,9 @@ Contract Details:
 """
         
         if '持仓量' in df.columns:
-            result += f"Open Interest (持仓量): {df.iloc[0]['持仓量']:,}\n"
+            result += f"Open Interest (持仓量): {latest['持仓量']:,.0f}\n"
         if '成交量' in df.columns:
-            result += f"Trading Volume (成交量): {df.iloc[0]['成交量']:,}\n"
+            result += f"Trading Volume (成交量): {latest['成交量']:,.0f}\n"
         
         result += "\nNote: Higher open interest indicates more active market participation."
         
