@@ -6,6 +6,10 @@ from tradingagents.agents.utils.news_data_tools import (
     get_futures_news,
     get_global_futures_news,
 )
+from tradingagents.agents.utils.core_futures_tools import (
+    get_main_contract,
+    get_futures_ohlc,
+)
 
 PositionDirection = Literal["Long", "Short"]
 
@@ -23,44 +27,6 @@ CHINESE_FUTURES_SPECIES_CN = {
     "pb": "铅", "ni": "镍", "sn": "锡", "ss": "不锈钢",
     "ru": "天然橡胶", "bu": "沥青", "sc": "原油", "nr": "20号胶",
 }
-
-
-def get_main_contract(
-    symbol: str,
-    exchange: str = None,
-) -> str:
-    """
-    Get the main contract code for a given futures symbol.
-    
-    Args:
-        symbol: Futures symbol code (e.g., 'rb' for rebar, 'hc' for hot rolled coil)
-        exchange: Exchange code (optional)
-    
-    Returns:
-        Main contract code string
-    """
-    if exchange:
-        return route_to_vendor("get_main_contract", symbol, exchange)
-    return route_to_vendor("get_main_contract", symbol)
-
-
-def get_futures_ohlc(
-    symbol: str,
-    start_date: str,
-    end_date: str,
-) -> str:
-    """
-    Get OHLC daily bars for a futures contract.
-    
-    Args:
-        symbol: Main contract code (e.g., 'rb2410')
-        start_date: Start date in yyyy-mm-dd format
-        end_date: End date in yyyy-mm-dd format
-    
-    Returns:
-        Formatted OHLC data string
-    """
-    return route_to_vendor("get_futures_ohlc", symbol, start_date, end_date)
 
 
 def get_futures_indicators(
